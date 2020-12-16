@@ -134,3 +134,6 @@ dmypy.json
 # Visual Studio Code
 >>>>>>> cf71dac63a4d0295479940f324d63a990045a4e9
 .vscode/
+
+# Intellij IDEA
+.idea/
