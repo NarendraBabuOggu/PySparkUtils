@@ -1,5 +1,5 @@
-from src.dependencies.utils import get_spark
-from src.dependencies.config_parser import Config
+from pysparkutils.dependencies.utils import get_spark
+from pysparkutils.dependencies.config_parser import Config
 import unittest
 from typing import Callable
 

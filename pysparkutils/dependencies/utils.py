@@ -1,8 +1,8 @@
 # Importing PySpark Utilities
 from pyspark.sql import SparkSession
 # Importing Project related Utilities
-from src.dependencies.config_parser import Config
-from src.dependencies.logger import Log4j
+from pysparkutils.dependencies.config_parser import Config
+from pysparkutils.dependencies.logger import Log4j
 from typing import Tuple, List
 import __main__
 

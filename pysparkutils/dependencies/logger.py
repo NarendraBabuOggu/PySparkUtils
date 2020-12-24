@@ -1,6 +1,5 @@
 """
 logger
-~~~~~~~
 
 This module contains a class that wraps the log4j object instantiated
 by the active SparkContext, enabling Log4j logging for PySpark using.

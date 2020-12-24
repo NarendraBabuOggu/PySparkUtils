@@ -137,3 +137,6 @@ dmypy.json
 
 # Intellij IDEA
 .idea/
+
+# Out Data
+./resources/out*

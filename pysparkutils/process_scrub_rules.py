@@ -1,8 +1,8 @@
-from src.dependencies.utils import get_spark
-from src.dependencies.config_parser import Config
+from pysparkutils.dependencies.utils import get_spark
+from pysparkutils.dependencies.config_parser import Config
 from pyspark.sql import DataFrame
 from pyspark.sql import SparkSession
-from src.dependencies.logger import Log4j
+from pysparkutils.dependencies.logger import Log4j
 
 
 def process_scrub_rule(
