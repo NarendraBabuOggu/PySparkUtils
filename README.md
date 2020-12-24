@@ -1,2 +1,2 @@
-# pyspark-practice
+# PySparkUtils
 Code snippets for PySpark
