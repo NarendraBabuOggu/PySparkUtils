@@ -1,114 +1,55 @@
-# Importing PySpark Utilities
 from pyspark.sql import SparkSession
-# Importing Project related Utilities
-from pysparkutils.dependencies.config_parser import Config
-from pysparkutils.dependencies.logger import Log4j
+from pysparkutils.dependencies.hocon_config_parser import get_config
+from pyhocon.config_tree import ConfigTree
+from pysparkutils.dependencies.logger import get_logger
 from typing import Tuple, List
-import __main__
+from logging import Logger
 
 
 def get_spark(
-    appname: str = 'spark_app', master: str = 'local[*]',
-    jar_packages: List[str] = [], files: List[str] = [],
-    loglevel: str = 'WARN', spark_config: Config = None,
-    env: str = None
-) -> Tuple[SparkSession, Log4j]:
+    config_path: str,
+    loglevel: str = 'WARN',
+    env: str = 'dev'
+) -> Tuple[SparkSession, ConfigTree, Logger]:
     """
-    Start Spark session and get Spark logger
-    Start a Spark session on the worker node and register the Spark
-    application with the cluster. Note, that only the appname argument
-    will apply when this is called from a script sent to spark-submit.
-    All other arguments exist solely for testing the script from within
-    an interactive Python console.
-    The function checks the enclosing environment to see if it is being
-    run from inside an interactive console session.
-    In this scenario, the function uses all available function arguments
-    to start a PySpark driver from the local PySpark package as opposed
-    to using the spark-submit and Spark cluster defaults. This will also
-    use local module imports, as opposed to those in the zip archive
-    sent to spark via the --py-files flag in spark-submit.
-
+    Start Spark session and get Spark logger using the configuration 
+    from the file present at given path
+    
     Args:
-        appname (str, optional) :
-            Name of Spark Application. Defaults to spark_app.
-        master (str, optional) :
-            Spark Mater URL. Defaults to local[*].
-        jar_packages (list, optional) :
-            Packages to use when calling spark. Defaults to [].
-        files (list, optional) :
-            Extra files to submit to the cluster. Defaults to [].
-        loglevel (str, optional) :
+        config_path (str): Path containing the config file
+        loglevel (str, optional):
             Loglevel to use. Defaults to 'WARN'.
-        spark_config (Config, optional) :
+        spark_config (Config, optional):
             The configuration class. Defaults to None.
 
     Returns:
-        Tuple[SparkSession, SparkContext,: [description]
+        Tuple[SparkSession, ConfigTree, Logger]: 
+            Returns sparksession, configuration, logger objects 
     """
 
-    # detect execution environment
-    flag_repl = not(hasattr(__main__, '__file__'))
-
-    if spark_config:
-        appname = (
-            spark_config[env+'.appname']
-            if env+'.appname' in spark_config
-            else appname
-        )
-        master = (
-            spark_config[env+'.master']
-            if env+'.master' in spark_config
-            else master
-        )
-        jar_packages = (
-            spark_config[env+'.packages']
-            if env+'.packages' in spark_config
-            else jar_packages
-        )
-        files = (
-            spark_config[env+'.files']
-            if env+'.files' in spark_config
-            else files
-        )
-
-    if not (flag_repl):
-        # get Spark session factory
+    try:
+        conf = get_config(config_path)[env]
+    
         spark_builder = (
             SparkSession
             .builder
-            .appName(appname)
-        )
-    else:
-        # get Spark session factory
-        spark_builder = (
-            SparkSession
-            .builder
-            .master(master)
-            .appName(appname)
+            .appName(conf['spark.app.name'])
+            .master(conf['spark.master'])
         )
 
         # create Spark JAR packages string
-        spark_jars_packages = (
-            ','.join(list(jar_packages))
-            if isinstance(jar_packages, list)
-            else jar_packages
-        )
-        spark_builder.config('spark.jars.packages', spark_jars_packages)
+        for key, value in conf.items():
+            spark_builder.config(key, value)
 
-        spark_files = (
-            ','.join(list(files))
-            if isinstance(files, list)
-            else files
-        )
-        spark_builder.config('spark.files', spark_files)
+        # create session and retrieve Spark logger object
+        spark_sess = spark_builder.getOrCreate()
+        loglevel = conf['loglevel'] if 'loglevel' in conf else loglevel
+        spark_sess.sparkContext.setLogLevel(loglevel)
+        logger = get_logger(loglevel)
+        
+        spark_sess.sparkContext._jsc.hadoopConfiguration().set('fs.defaultFS', conf['spark.hadoop.fs.defaultFS'])
 
-        # add other config params
-        for key in spark_config:
-            spark_builder.config(key, spark_config[key])
-
-    # create session and retrieve Spark logger object
-    spark_sess = spark_builder.getOrCreate()
-    spark_logger = Log4j(spark_sess)
-    spark_sess.sparkContext.setLogLevel(loglevel)
-
-    return spark_sess, spark_logger
+        return spark_sess, conf, logger
+    except Exception as e:
+        print("Exception occured while initialising sparksession object.")
+        raise(e)

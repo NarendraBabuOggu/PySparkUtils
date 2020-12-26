@@ -1,8 +1,8 @@
 from pysparkutils.dependencies.utils import get_spark
-from pysparkutils.dependencies.config_parser import Config
 from pyspark.sql import DataFrame
 from pyspark.sql import SparkSession
-from pysparkutils.dependencies.logger import Log4j
+from logging import Logger
+from pysparkutils.dependencies.file_system_utility import FileSystemUtility
 
 
 def write_sngle_file(path: str, ext: str, logger: callable=None) -> bool:
@@ -30,7 +30,7 @@ def write_sngle_file(path: str, ext: str, logger: callable=None) -> bool:
     except Exception as e:
         if logger:
             logger.warn(f"Unable to write the part file in directory {path} to single file {path+'.'+ext}")
-        logger.error(e)
+            logger.error(e)
 
 
 def write_sngle_file_hdfs(path: str, ext: str, logger: callable=None) -> bool:
@@ -55,14 +55,14 @@ def write_sngle_file_hdfs(path: str, ext: str, logger: callable=None) -> bool:
         return True
     except Exception as e:
         if logger:
-            logger.warn(f"Unable to write the part file in directory {path} to single file {path+'.'+ext}")
-        logger.error(e)
+            logger.warning(f"Unable to write the part file in directory {path} to single file {path+'.'+ext}")
+            logger.error(e)
 
 
 def read_dataframe(
     path: str, 
     spark: SparkSession,
-    logger: Log4j = None,
+    logger: Logger = None,
     **kwargs
 ) -> DataFrame:
     """
@@ -89,16 +89,19 @@ def read_dataframe(
         )
         return df
     except Exception as e:
-        logger.warn(
-            f"Unable to read CSV data from {path} with parameters {kwargs}"
-        )
-        logger.error(e)
+        if logger:
+            logger.warning(
+                f"Unable to read CSV data from {path} with parameters {kwargs}"
+            )
+            logger.error(e)
+        else:
+            raise(e)
 
 def write_dataframe(
     df:DataFrame, 
     path: str, 
     spark: SparkSession,
-    logger: Log4j = None,
+    logger: Logger = None,
     n_partitions: int = 1,
     **kwargs
 ) -> bool:
@@ -129,8 +132,13 @@ def write_dataframe(
         else:
             df_writer = df.write
 
-        path_ext = path.split('.')[-1]
-        path = path[:len(path)-len(path_ext)-1]
+        if '.' in path:
+            path_ext = path.split('.')[-1]
+            path = path[:len(path)-len(path_ext)-1]
+        
+        if 'save_mode' in kwargs:
+            df_writer = df_writer.mode(kwargs['save_mode'])
+        
         (
             df_writer.format('csv')
             .option('path', path)
@@ -138,19 +146,19 @@ def write_dataframe(
             .save()
         )
 
-        if n_partitions == 1:
-            write_sngle_file_hdfs(path, path_ext, logger)
         return True
     except Exception as e:
-        logger.warn(
-            f"Unable to write CSV data to {path} with parameters {kwargs}"
-        )
-        logger.error(e)
+        if logger:
+            logger.warning(
+                f"Unable to write CSV data to {path} with parameters {kwargs}"
+            )
+            logger.error(e)
+        else:
+            raise(e)
 
 
 if __name__ == '__main__':
-    config = Config('./configs/config.ini')
-    spark, logger = get_spark(spark_config=config, env='dev')
+    spark, conf, logger = get_spark('configs/hocon.conf', env='dev')
 
     df = read_dataframe(
         path='/user/narendra/resources/data.csv',
@@ -166,6 +174,10 @@ if __name__ == '__main__':
         path='/user/narendra/practice/out.csv',
         spark=spark,
         logger=logger,
-        mode='overwrite', 
+        save_mode='overwrite', 
+        mode='FAILFAST',
         header=True
     )
+
+    fs_utility = FileSystemUtility(spark, logger)
+    fs_utility.write_to_single_file('/user/narendra/practice/out', 'txt')

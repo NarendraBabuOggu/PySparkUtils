@@ -140,3 +140,6 @@ dmypy.json
 
 # Out Data
 ./resources/out*
+
+# Spark
+metastore_db/*

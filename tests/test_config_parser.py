@@ -1,6 +1,8 @@
-from pysparkutils.dependencies.config_parser import Config
+#from pysparkutils.dependencies.config_parser import Config
+from pysparkutils.dependencies.hocon_config_parser import get_config
 import unittest
 from typing import Callable
+from pyhocon.config_tree import ConfigTree
 
 
 class TestConfig(unittest.TestCase):
@@ -13,16 +15,16 @@ class TestConfig(unittest.TestCase):
             self (Callable): Test case to validate Config Class
         """
 
-        config = Config('tests/data/config.ini')
+        config = get_config('tests/configs/hocon.conf')
         self.assertTrue(
             config,
-            "Configuration File data/config.ini Exists but Config Class" + 
+            "Configuration File tests/configs/hocon.conf but Config Class" + 
             "Failed to Read"
         )
         self.assertIsInstance(
             config,
-            Config,
-            "Configuration File should be of type Config class." + 
+            ConfigTree,
+            "Configuration File should be of type ConfigTree class." + 
             f"Where as the result is of type {type(config)}"
         )
 
@@ -35,7 +37,7 @@ class TestConfig(unittest.TestCase):
         """
 
         with self.assertRaises(Exception):
-            Config('config.ini')
+            get_config('config.ini')
 
     def test_existing_property(self: Callable):
         """
@@ -45,10 +47,10 @@ class TestConfig(unittest.TestCase):
             self (Callable): Test case to validate Config Class
         """
 
-        config = Config('tests/data/config.ini')
+        config = get_config('tests/configs/hocon.conf')
         self.assertEqual(
-            config['dev.master'],
-            'local[*]'
+            config['test.spark.master'],
+            'local[2]'
         )
 
     def test_non_existing_property(self: Callable):
@@ -59,11 +61,12 @@ class TestConfig(unittest.TestCase):
             self (Callable): Test case to validate Config Class
         """
 
-        config = Config('tests/data/config.ini')
-        self.assertNotEqual(
-            config['dev.master'],
-            'local'
-        )
+        config = get_config('tests/configs/hocon.conf')
+        with self.assertRaises(Exception):
+            self.assertNotEqual(
+                config['dev.master'],
+                'local'
+            )
 
 
 if __name__ == '__main__':

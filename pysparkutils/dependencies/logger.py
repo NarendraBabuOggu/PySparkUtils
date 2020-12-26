@@ -1,80 +1,25 @@
-"""
-logger
-
-This module contains a class that wraps the log4j object instantiated
-by the active SparkContext, enabling Log4j logging for PySpark using.
-"""
-from pyspark.sql.session import SparkSession
-from typing import Callable
+from logging import Logger
+import logging
 
 
-class Log4j(object):
+def get_logger(loglevel: str='ERROR') -> Logger:
     """
-    Wrapper class for Log4j JVM object.
+    Create Logger Object for Logging the messages
+
+    Args:
+        loglevel (str): Log Level to use ['DEBUG', 'INFO', 'WARN', 'ERROR']
+    
+    Returns:
+        Returns the Logger object to log the messages
     """
 
-    def __init__(self: Callable, spark: SparkSession): 
-        """
-        To Initialize the Log4j class
+    logger = logging.getLogger('PySpark Utils')
+    logger.setLevel(loglevel)
+    s_handler = logging.StreamHandler()
 
-        Args:
-            self (Callable): [description]
-            spark (SparkSession): [description]
-        """
-        # get spark app details with which to prefix all messages
-        conf = spark.sparkContext.getConf()
-        app_id = conf.get('spark.app.id')
-        app_name = conf.get('spark.app.name')
+    # Using format similar to Spark Log format
+    formatter = logging.Formatter('%(asctime)s %(levelname)s %(funcName)s: %(message)s', datefmt='%y/%m/%d %H:%M:%S')
+    s_handler.setFormatter(formatter)
+    logger.addHandler(s_handler)
 
-        log4j = spark._jvm.org.apache.log4j
-        message_prefix = '<' + app_name + ' ' + app_id + '>'
-        self.logger = log4j.LogManager.getLogger(message_prefix)
-
-    def error(self: Callable, message: str):
-        """Log an error.
-
-        Args:
-            self (Callable): Log4j Class
-            message (str): Information message to write to log
-
-        Returns: None
-        """
-        self.logger.error(message)
-        return None
-
-    def warn(self: Callable, message: str):
-        """
-        Log an warning.
-        Args:
-            self (Callable): Log4j Class
-            message (str): Information message to write to log
-
-        Returns: None
-        """
-        self.logger.warn(message)
-        return None
-
-    def info(self: Callable, message: str):
-        """
-        Log information.
-
-        Args:
-            self (Callable): Log4j Class
-            message (str): Information message to write to log
-
-        Returns: None
-        """
-        self.logger.info(message)
-        return None
-
-    def setLevel(self: Callable, loglevel: str = 'WARN'):
-        """
-        Log Level to use
-
-        Args:
-            self (Callable): Log4j Class
-            loglevel (str, optional): loglevel to use. Defaults to 'WARN'.
-        """
-
-        self.logger.setLevel(loglevel)
-        return None
+    return logger
