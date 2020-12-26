@@ -137,3 +137,9 @@ dmypy.json
 
 # Intellij IDEA
 .idea/
+
+# Out Data
+./resources/out*
+
+# Spark
+metastore_db/*

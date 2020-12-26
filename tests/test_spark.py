@@ -1,5 +1,4 @@
-from src.dependencies.utils import get_spark
-from src.dependencies.config_parser import Config
+from pysparkutils.dependencies.utils import get_spark
 import unittest
 from typing import Callable
 
@@ -13,9 +12,10 @@ class SparkTest(unittest.TestCase):
             self (Callable): Test Case
         """
 
-        self.config = Config('tests/data/config.ini')
-        self.spark, _ = get_spark(
-            loglevel='INFO', spark_config=self.config, env='dev'
+        self.spark, self.conf, self.logger = get_spark(
+            'tests/configs/hocon.conf', 
+            loglevel='INFO',
+            env='dev'
         )
         self.spark_conf = self.spark.sparkContext.getConf()
 
@@ -39,7 +39,7 @@ class SparkTest(unittest.TestCase):
 
         self.assertEqual(
             self.spark_conf.get('spark.app.name'), 
-            'pyspark-practice',
+            self.conf['spark.appname'],
             "The Spark Appname should equal to the appname mentioned in Config"
         )
 
@@ -53,7 +53,7 @@ class SparkTest(unittest.TestCase):
 
         self.assertEqual(
             self.spark_conf.get('spark.master'), 
-            'local[*]',
+            self.conf['spark.master'],
             "The Spark master should equal to the master mentioned in Config"
         )
 
